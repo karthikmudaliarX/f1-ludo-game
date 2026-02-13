@@ -4,7 +4,7 @@ import './ActionPanel.css';
 
 const ActionPanel = () => {
   const { gameState, gameStates, dispatch, gameActions, turnManager, diceManager } = useGame();
-  const currentPlayer = gameState.players[gameState.currentPlayer];
+  const currentPlayer = gameState.players[gameState.currentTurnIndex];
 
   const handleRollDice = async () => {
     if (gameState.gameState === gameStates.WAITING_FOR_ROLL && !gameState.diceRolling) {
@@ -53,7 +53,7 @@ const ActionPanel = () => {
       case gameStates.WAITING_FOR_ROLL:
         return (
           <div className="action-section">
-            <h4>Your Turn</h4>
+            <h4>Your Turn - {currentPlayer.name}</h4>
             <button 
               className="action-button primary roll-button"
               onClick={handleRollDice}
@@ -86,48 +86,29 @@ const ActionPanel = () => {
 
       case gameStates.WAITING_FOR_MOVE:
         const activeCars = currentPlayer.cars.filter(car => car.isActive && car.position === 'track');
-        const canMove = turnManager.hasLegalMoves(currentPlayer, gameState.diceValue);
         
         return (
           <div className="action-section">
             <h4>Choose a car to move {gameState.diceValue} steps:</h4>
-            {canMove ? (
-              <div className="car-choices">
-                {activeCars.map(car => (
-                  <button
-                    key={car.id}
-                    className="car-choice"
-                    onClick={() => handleMoveCar(car.id)}
-                    style={{ backgroundColor: currentPlayer.color }}
-                  >
-                    Car {car.id + 1} (Pos: {car.trackPosition})
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <div className="no-moves">
-                <p>No legal moves available!</p>
-                <button 
-                  className="action-button secondary"
-                  onClick={() => dispatch({ type: gameActions.NEXT_PLAYER })}
+            <div className="car-choices">
+              {activeCars.map(car => (
+                <button
+                  key={car.id}
+                  className="car-choice"
+                  onClick={() => handleMoveCar(car.id)}
+                  style={{ backgroundColor: currentPlayer.color }}
                 >
-                  ➡️ End Turn
+                  Car {car.id + 1} (Pos: {car.trackPosition})
                 </button>
-              </div>
-            )}
+              ))}
+            </div>
           </div>
         );
 
       case gameStates.TURN_COMPLETE:
         return (
           <div className="action-section">
-            <h4>✅ Turn Complete!</h4>
-            <button 
-              className="action-button primary"
-              onClick={() => dispatch({ type: gameActions.NEXT_PLAYER })}
-            >
-              ➡️ Next Player
-            </button>
+            <h4>✅ Turn Complete! Passing to next player...</h4>
           </div>
         );
 

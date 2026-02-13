@@ -4,7 +4,7 @@ import './Sidebar.css';
 
 const Sidebar = () => {
   const { gameState, gameStates, teamColors } = useGame();
-  const currentPlayer = gameState.players[gameState.currentPlayer];
+  const currentPlayer = gameState.players[gameState.currentTurnIndex];
   
   const getCurrentPlayerName = () => {
     return currentPlayer.name;
@@ -60,7 +60,7 @@ const Sidebar = () => {
         {gameState.players.map((player) => (
           <div 
             key={player.id} 
-            className={`player-item ${player.id === gameState.currentPlayer ? 'active' : ''}`}
+            className={`player-item ${player.id === gameState.currentTurnIndex ? 'active' : ''}`}
           >
             <div 
               className="player-color"

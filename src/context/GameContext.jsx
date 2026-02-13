@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useMemo } from 'react';
+import React, { createContext, useContext, useReducer, useMemo, useEffect, useCallback } from 'react';
 import { TurnManager } from '../logic/TurnManager';
 import { MovementManager } from '../logic/MovementManager';
 import { DiceManager } from '../logic/DiceManager';
@@ -18,6 +18,9 @@ export const TEAM_COLORS = {
   YELLOW: '#FF8700', // McLaren
   GREEN: '#00FF00'   // Williams
 };
+
+// Player order for round-robin
+const PLAYER_ORDER = ['Ferrari', 'Mercedes', 'McLaren', 'Williams'];
 
 // Initial players setup
 const initialPlayers = [
@@ -70,7 +73,7 @@ const initialPlayers = [
 // Initial game state
 const initialGameState = {
   players: initialPlayers,
-  currentPlayer: 0,
+  currentTurnIndex: 0,  // Round-robin index (0-3)
   gameState: GAME_STATES.WAITING_FOR_ROLL,
   diceValue: null,
   turnNumber: 1,
@@ -85,7 +88,7 @@ const GAME_ACTIONS = {
   SPAWN_CAR: 'SPAWN_CAR',
   MOVE_CAR: 'MOVE_CAR',
   END_TURN: 'END_TURN',
-  NEXT_PLAYER: 'NEXT_PLAYER',
+  ADVANCE_TURN: 'ADVANCE_TURN',
   RESET_GAME: 'RESET_GAME',
   SET_DICE_ROLLING: 'SET_DICE_ROLLING'
 };
@@ -98,16 +101,28 @@ const diceManager = new DiceManager();
 // Game reducer
 function gameReducer(state, action) {
   switch (action.type) {
-    case GAME_ACTIONS.ROLL_DICE:
+    case GAME_ACTIONS.ROLL_DICE: {
       const diceValue = action.diceValue;
-      const currentPlayer = state.players[state.currentPlayer];
+      const currentPlayer = state.players[state.currentTurnIndex];
       
-      // Determine next state using TurnManager
-      const nextGameState = turnManager.determineNextState(
-        state.gameState,
-        diceValue,
-        currentPlayer
-      );
+      // Check if player has inactive cars (in garage)
+      const garageCars = currentPlayer.cars.filter(car => car.position === 'garage');
+      // Check if player has active cars on track
+      const activeCars = currentPlayer.cars.filter(car => car.isActive && car.position === 'track');
+      
+      let nextGameState;
+      
+      // Determine next state based on dice roll and available cars
+      if (diceValue === 6 && garageCars.length > 0) {
+        // Player rolled 6 AND has cars in garage -> can spawn
+        nextGameState = GAME_STATES.WAITING_FOR_SPAWN;
+      } else if (activeCars.length > 0) {
+        // Player has active cars -> can move
+        nextGameState = GAME_STATES.WAITING_FOR_MOVE;
+      } else {
+        // No spawn possible and no active cars -> turn complete
+        nextGameState = GAME_STATES.TURN_COMPLETE;
+      }
 
       return {
         ...state,
@@ -115,8 +130,9 @@ function gameReducer(state, action) {
         gameState: nextGameState,
         diceRolling: false
       };
+    }
 
-    case GAME_ACTIONS.SPAWN_CAR:
+    case GAME_ACTIONS.SPAWN_CAR: {
       const { playerId, carId } = action;
       const player = state.players[playerId];
       const startingPosition = movementManager.getStartingPosition(playerId);
@@ -146,10 +162,11 @@ function gameReducer(state, action) {
         ...state,
         players: updatedPlayers,
         trackPositions: movementManager.getTrackOccupancy(),
-        gameState: GAME_STATES.WAITING_FOR_MOVE
+        gameState: GAME_STATES.TURN_COMPLETE  // End with TURN_COMPLETE
       };
+    }
 
-    case GAME_ACTIONS.MOVE_CAR:
+    case GAME_ACTIONS.MOVE_CAR: {
       const moveResult = action;
       const movingPlayer = state.players[moveResult.playerId];
       const carToMove = movingPlayer.cars.find(car => car.id === moveResult.carId);
@@ -177,18 +194,23 @@ function gameReducer(state, action) {
         ...state,
         players: movedPlayers,
         trackPositions: movementManager.getTrackOccupancy(),
-        gameState: GAME_STATES.TURN_COMPLETE
+        gameState: GAME_STATES.TURN_COMPLETE  // End with TURN_COMPLETE
       };
+    }
 
-    case GAME_ACTIONS.NEXT_PLAYER:
-      const nextPlayerInfo = turnManager.nextPlayer();
+    case GAME_ACTIONS.ADVANCE_TURN: {
+      // Calculate next player's turn index using modulo for round-robin
+      const nextTurnIndex = (state.currentTurnIndex + 1) % 4;
+      const nextTurnNumber = nextTurnIndex === 0 ? state.turnNumber + 1 : state.turnNumber;
+      
       return {
         ...state,
-        currentPlayer: nextPlayerInfo.currentPlayer,
+        currentTurnIndex: nextTurnIndex,
         gameState: GAME_STATES.WAITING_FOR_ROLL,
         diceValue: null,
-        turnNumber: nextPlayerInfo.turnNumber
+        turnNumber: nextTurnNumber
       };
+    }
 
     case GAME_ACTIONS.SET_DICE_ROLLING:
       return {
@@ -224,6 +246,18 @@ export function GameProvider({ children }) {
     turnManager.initialize(gameState.players);
     movementManager.initialize(gameState.trackPositions);
   }, [gameState.players, gameState.trackPositions]);
+
+  // ADVANCE TURN: Listen for TURN_COMPLETE and automatically advance to next player
+  useEffect(() => {
+    if (gameState.gameState === GAME_STATES.TURN_COMPLETE) {
+      // Small delay for visual feedback before advancing
+      const timer = setTimeout(() => {
+        dispatch({ type: GAME_ACTIONS.ADVANCE_TURN });
+      }, 500);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [gameState.gameState]);
 
   // Memoized context value to prevent unnecessary re-renders
   const contextValue = useMemo(() => ({
