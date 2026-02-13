@@ -9,8 +9,8 @@ import './App.css';
 function App() {
   return (
     <GameProvider>
-      <div className="app">
-        <div className="game-layout">
+      <div className="center-wrapper">
+        <div className="game-shell">
           {/* Left Sidebar */}
           <div className="sidebar-container">
             <Sidebar />
