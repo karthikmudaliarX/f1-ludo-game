@@ -3,12 +3,24 @@ import { useGame } from '../context/GameContext';
 import './ActionPanel.css';
 
 const ActionPanel = () => {
-  const { gameState, gameStates, dispatch, gameActions } = useGame();
+  const { gameState, gameStates, dispatch, gameActions, turnManager, diceManager } = useGame();
   const currentPlayer = gameState.players[gameState.currentPlayer];
 
-  const handleRollDice = () => {
-    if (gameState.gameState === gameStates.WAITING_FOR_ROLL) {
-      const diceValue = Math.floor(Math.random() * 6) + 1;
+  const handleRollDice = async () => {
+    if (gameState.gameState === gameStates.WAITING_FOR_ROLL && !gameState.diceRolling) {
+      // Set rolling state
+      dispatch({ type: 'SET_DICE_ROLLING', isRolling: true });
+      
+      // Start dice roll animation
+      const rollPromise = new Promise((resolve) => {
+        const rollResult = diceManager.rollDice();
+        // Wait for animation to complete
+        setTimeout(() => resolve(rollResult), 1000);
+      });
+
+      const diceValue = await rollPromise;
+      
+      // Dispatch the actual dice roll
       dispatch({
         type: gameActions.ROLL_DICE,
         diceValue
@@ -18,32 +30,21 @@ const ActionPanel = () => {
 
   const handleSpawnCar = (carId) => {
     if (gameState.gameState === gameStates.WAITING_FOR_SPAWN) {
-      const garageCars = currentPlayer.cars.filter(car => car.position === 'garage');
-      if (garageCars.some(car => car.id === carId)) {
-        dispatch({
-          type: gameActions.SPAWN_CAR,
-          playerId: currentPlayer.id,
-          carId,
-          trackPosition: currentPlayer.id * 13 // Starting position for each player
-        });
-      }
+      dispatch({
+        type: gameActions.SPAWN_CAR,
+        playerId: currentPlayer.id,
+        carId
+      });
     }
   };
 
   const handleMoveCar = (carId) => {
     if (gameState.gameState === gameStates.WAITING_FOR_MOVE) {
-      const activeCars = currentPlayer.cars.filter(car => car.isActive && car.position === 'track');
-      if (activeCars.some(car => car.id === carId)) {
-        const currentCar = activeCars.find(car => car.id === carId);
-        const newTrackPosition = (currentCar.trackPosition + gameState.diceValue) % 52;
-        
-        dispatch({
-          type: gameActions.MOVE_CAR,
-          playerId: currentPlayer.id,
-          carId,
-          newTrackPosition
-        });
-      }
+      dispatch({
+        type: gameActions.MOVE_CAR,
+        playerId: currentPlayer.id,
+        carId
+      });
     }
   };
 
@@ -51,20 +52,23 @@ const ActionPanel = () => {
     switch (gameState.gameState) {
       case gameStates.WAITING_FOR_ROLL:
         return (
-          <button 
-            className="action-button primary"
-            onClick={handleRollDice}
-            disabled={gameState.gameState !== gameStates.WAITING_FOR_ROLL}
-          >
-            🎲 Roll Dice
-          </button>
+          <div className="action-section">
+            <h4>Your Turn</h4>
+            <button 
+              className="action-button primary roll-button"
+              onClick={handleRollDice}
+              disabled={gameState.diceRolling || gameState.gameState !== gameStates.WAITING_FOR_ROLL}
+            >
+              {gameState.diceRolling ? '🎲 Rolling...' : '🎲 Roll Dice'}
+            </button>
+          </div>
         );
 
       case gameStates.WAITING_FOR_SPAWN:
         const garageCars = currentPlayer.cars.filter(car => car.position === 'garage');
         return (
-          <div className="spawn-options">
-            <h4>Choose a car to spawn:</h4>
+          <div className="action-section">
+            <h4>🎯 You rolled a 6! Choose a car to spawn:</h4>
             <div className="car-choices">
               {garageCars.map(car => (
                 <button
@@ -82,28 +86,42 @@ const ActionPanel = () => {
 
       case gameStates.WAITING_FOR_MOVE:
         const activeCars = currentPlayer.cars.filter(car => car.isActive && car.position === 'track');
+        const canMove = turnManager.hasLegalMoves(currentPlayer, gameState.diceValue);
+        
         return (
-          <div className="move-options">
-            <h4>Choose a car to move:</h4>
-            <div className="car-choices">
-              {activeCars.map(car => (
-                <button
-                  key={car.id}
-                  className="car-choice"
-                  onClick={() => handleMoveCar(car.id)}
-                  style={{ backgroundColor: currentPlayer.color }}
+          <div className="action-section">
+            <h4>Choose a car to move {gameState.diceValue} steps:</h4>
+            {canMove ? (
+              <div className="car-choices">
+                {activeCars.map(car => (
+                  <button
+                    key={car.id}
+                    className="car-choice"
+                    onClick={() => handleMoveCar(car.id)}
+                    style={{ backgroundColor: currentPlayer.color }}
+                  >
+                    Car {car.id + 1} (Pos: {car.trackPosition})
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="no-moves">
+                <p>No legal moves available!</p>
+                <button 
+                  className="action-button secondary"
+                  onClick={() => dispatch({ type: gameActions.NEXT_PLAYER })}
                 >
-                  Car {car.id + 1} (Pos: {car.trackPosition})
+                  ➡️ End Turn
                 </button>
-              ))}
-            </div>
+              </div>
+            )}
           </div>
         );
 
       case gameStates.TURN_COMPLETE:
         return (
-          <div className="turn-complete">
-            <h4>Turn Complete!</h4>
+          <div className="action-section">
+            <h4>✅ Turn Complete!</h4>
             <button 
               className="action-button primary"
               onClick={() => dispatch({ type: gameActions.NEXT_PLAYER })}
@@ -114,7 +132,11 @@ const ActionPanel = () => {
         );
 
       default:
-        return null;
+        return (
+          <div className="action-section">
+            <p>Game is loading...</p>
+          </div>
+        );
     }
   };
 

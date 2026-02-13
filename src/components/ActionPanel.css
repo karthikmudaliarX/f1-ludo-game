@@ -12,7 +12,22 @@
   backdrop-filter: blur(10px);
   z-index: 100;
   min-width: 400px;
+  max-width: 600px;
   text-align: center;
+}
+
+.action-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+}
+
+.action-section h4 {
+  margin: 0;
+  color: #ff6b35;
+  font-size: 1.2rem;
+  font-weight: bold;
 }
 
 .action-button {
@@ -40,6 +55,7 @@
   color: #999;
   cursor: not-allowed;
   box-shadow: none;
+  transform: none;
 }
 
 .action-button.primary {
@@ -52,16 +68,21 @@
   background: linear-gradient(135deg, #22ff22 0%, #11dd11 100%);
 }
 
-.spawn-options,
-.move-options {
-  text-align: center;
+.action-button.secondary {
+  background: linear-gradient(135deg, #666 0%, #888 100%);
+  font-size: 1rem;
+  padding: 10px 20px;
 }
 
-.spawn-options h4,
-.move-options h4 {
-  margin: 0 0 15px 0;
-  color: #ff6b35;
-  font-size: 1.2rem;
+.action-button.roll-button {
+  font-size: 1.3rem;
+  padding: 15px 30px;
+  animation: rollButtonPulse 2s infinite;
+}
+
+.action-button.roll-button:hover:not(:disabled) {
+  animation: none;
+  transform: translateY(-3px) scale(1.05);
 }
 
 .car-choices {
@@ -69,19 +90,21 @@
   gap: 10px;
   justify-content: center;
   flex-wrap: wrap;
+  max-width: 100%;
 }
 
 .car-choice {
   background: linear-gradient(135deg, #333 0%, #555 100%);
   color: white;
   border: 2px solid #666;
-  padding: 10px 20px;
+  padding: 10px 16px;
   font-size: 1rem;
   font-weight: bold;
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.3s ease;
   box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
+  white-space: nowrap;
 }
 
 .car-choice:hover {
@@ -95,13 +118,64 @@
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
 }
 
-.turn-complete {
+.no-moves {
   text-align: center;
+  color: #ffaa00;
+  background: rgba(255, 170, 0, 0.1);
+  padding: 15px;
+  border-radius: 10px;
+  border: 1px solid #ffaa00;
 }
 
-.turn-complete h4 {
+.no-moves p {
   margin: 0 0 15px 0;
-  color: #00ff00;
-  font-size: 1.4rem;
+  font-size: 1.1rem;
   font-weight: bold;
+}
+
+@keyframes rollButtonPulse {
+  0% { 
+    box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
+  }
+  50% { 
+    box-shadow: 0 4px 20px rgba(255, 107, 53, 0.6);
+  }
+  100% { 
+    box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
+  }
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .action-panel {
+    bottom: 10px;
+    left: 10px;
+    right: 10px;
+    transform: none;
+    min-width: auto;
+  }
+  
+  .car-choices {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .car-choice {
+    width: 200px;
+  }
+}
+
+@media (max-width: 480px) {
+  .action-panel {
+    padding: 15px;
+  }
+  
+  .action-section h4 {
+    font-size: 1rem;
+  }
+  
+  .car-choice {
+    width: 180px;
+    font-size: 0.9rem;
+  }
 }

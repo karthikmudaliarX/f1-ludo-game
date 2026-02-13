@@ -1,4 +1,7 @@
 import React, { createContext, useContext, useReducer, useMemo } from 'react';
+import { TurnManager } from '../logic/TurnManager';
+import { MovementManager } from '../logic/MovementManager';
+import { DiceManager } from '../logic/DiceManager';
 
 // Game States
 export const GAME_STATES = {
@@ -72,7 +75,8 @@ const initialGameState = {
   diceValue: null,
   turnNumber: 1,
   trackPositions: Array(52).fill(null), // 52 positions on the track
-  winner: null
+  winner: null,
+  diceRolling: false
 };
 
 // Game actions
@@ -82,71 +86,84 @@ const GAME_ACTIONS = {
   MOVE_CAR: 'MOVE_CAR',
   END_TURN: 'END_TURN',
   NEXT_PLAYER: 'NEXT_PLAYER',
-  RESET_GAME: 'RESET_GAME'
+  RESET_GAME: 'RESET_GAME',
+  SET_DICE_ROLLING: 'SET_DICE_ROLLING'
 };
+
+// Initialize managers
+const turnManager = new TurnManager();
+const movementManager = new MovementManager();
+const diceManager = new DiceManager();
 
 // Game reducer
 function gameReducer(state, action) {
   switch (action.type) {
     case GAME_ACTIONS.ROLL_DICE:
+      const diceValue = action.diceValue;
+      const currentPlayer = state.players[state.currentPlayer];
+      
+      // Determine next state using TurnManager
+      const nextGameState = turnManager.determineNextState(
+        state.gameState,
+        diceValue,
+        currentPlayer
+      );
+
       return {
         ...state,
-        diceValue: action.diceValue,
-        gameState: action.diceValue === 6 ? GAME_STATES.WAITING_FOR_SPAWN : GAME_STATES.WAITING_FOR_MOVE
+        diceValue,
+        gameState: nextGameState,
+        diceRolling: false
       };
 
     case GAME_ACTIONS.SPAWN_CAR:
-      const { playerId, carId, trackPosition } = action;
-      const updatedPlayers = state.players.map(player => {
-        if (player.id === playerId) {
-          const updatedCars = player.cars.map(car => {
+      const { playerId, carId } = action;
+      const player = state.players[playerId];
+      const startingPosition = movementManager.getStartingPosition(playerId);
+      
+      // Use MovementManager to handle spawning
+      const spawnResult = movementManager.spawnCar(playerId, carId, startingPosition);
+
+      const updatedPlayers = state.players.map(p => {
+        if (p.id === playerId) {
+          const updatedCars = p.cars.map(car => {
             if (car.id === carId) {
               return {
                 ...car,
                 position: 'track',
-                trackPosition,
+                trackPosition: spawnResult.trackPosition,
                 isActive: true
               };
             }
             return car;
           });
-          return { ...player, cars: updatedCars };
+          return { ...p, cars: updatedCars };
         }
-        return player;
+        return p;
       });
-
-      // Update track position
-      const newTrackPositions = [...state.trackPositions];
-      newTrackPositions[trackPosition] = { playerId, carId };
 
       return {
         ...state,
         players: updatedPlayers,
-        trackPositions: newTrackPositions,
+        trackPositions: movementManager.getTrackOccupancy(),
         gameState: GAME_STATES.WAITING_FOR_MOVE
       };
 
     case GAME_ACTIONS.MOVE_CAR:
       const moveResult = action;
+      const movingPlayer = state.players[moveResult.playerId];
+      const carToMove = movingPlayer.cars.find(car => car.id === moveResult.carId);
+      
+      // Use MovementManager to handle movement
+      const moveInfo = movementManager.moveCar(carToMove, moveResult.playerId, state.diceValue);
+
       const movedPlayers = state.players.map(player => {
         if (player.id === moveResult.playerId) {
           const movedCars = player.cars.map(car => {
             if (car.id === moveResult.carId) {
-              // Clear old track position
-              const newTrackPositions = [...state.trackPositions];
-              if (car.trackPosition !== null) {
-                newTrackPositions[car.trackPosition] = null;
-              }
-              
-              // Set new track position
-              newTrackPositions[moveResult.newTrackPosition] = { 
-                playerId: moveResult.playerId, 
-                carId: moveResult.carId 
-              };
-
               return {
                 ...car,
-                trackPosition: moveResult.newTrackPosition
+                trackPosition: moveInfo.newTrackPosition
               };
             }
             return car;
@@ -159,20 +176,36 @@ function gameReducer(state, action) {
       return {
         ...state,
         players: movedPlayers,
+        trackPositions: movementManager.getTrackOccupancy(),
         gameState: GAME_STATES.TURN_COMPLETE
       };
 
     case GAME_ACTIONS.NEXT_PLAYER:
-      const nextPlayer = (state.currentPlayer + 1) % state.players.length;
+      const nextPlayerInfo = turnManager.nextPlayer();
       return {
         ...state,
-        currentPlayer: nextPlayer,
+        currentPlayer: nextPlayerInfo.currentPlayer,
         gameState: GAME_STATES.WAITING_FOR_ROLL,
-        diceValue: null
+        diceValue: null,
+        turnNumber: nextPlayerInfo.turnNumber
+      };
+
+    case GAME_ACTIONS.SET_DICE_ROLLING:
+      return {
+        ...state,
+        diceRolling: action.isRolling
       };
 
     case GAME_ACTIONS.RESET_GAME:
-      return initialGameState;
+      // Reset managers
+      turnManager.initialize(initialPlayers);
+      movementManager.initialize();
+      diceManager.reset();
+      
+      return {
+        ...initialGameState,
+        players: JSON.parse(JSON.stringify(initialPlayers))
+      };
 
     default:
       return state;
@@ -186,13 +219,22 @@ const GameContext = createContext();
 export function GameProvider({ children }) {
   const [gameState, dispatch] = useReducer(gameReducer, initialGameState);
 
+  // Initialize managers when players change
+  React.useEffect(() => {
+    turnManager.initialize(gameState.players);
+    movementManager.initialize(gameState.trackPositions);
+  }, [gameState.players, gameState.trackPositions]);
+
   // Memoized context value to prevent unnecessary re-renders
   const contextValue = useMemo(() => ({
     gameState,
     dispatch,
     gameActions: GAME_ACTIONS,
     gameStates: GAME_STATES,
-    teamColors: TEAM_COLORS
+    teamColors: TEAM_COLORS,
+    turnManager,
+    movementManager,
+    diceManager
   }), [gameState]);
 
   return (
