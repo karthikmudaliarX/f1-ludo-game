@@ -171,10 +171,12 @@ function gameReducer(state, action) {
       const movingPlayer = state.players[moveResult.playerId];
       const carToMove = movingPlayer.cars.find(car => car.id === moveResult.carId);
       
-      // Use MovementManager to handle movement
+      // Use MovementManager to handle movement (includes collision/knockout resolution)
       const moveInfo = movementManager.moveCar(carToMove, moveResult.playerId, state.diceValue);
 
-      const movedPlayers = state.players.map(player => {
+      // Process move and potential knockout
+      let updatedPlayers = state.players.map(player => {
+        // Update the moving car
         if (player.id === moveResult.playerId) {
           const movedCars = player.cars.map(car => {
             if (car.id === moveResult.carId) {
@@ -187,12 +189,29 @@ function gameReducer(state, action) {
           });
           return { ...player, cars: movedCars };
         }
+        
+        // Handle knockout - reset opponent's car to garage
+        if (moveInfo.knockedOut && player.id === moveInfo.knockedOut.playerId) {
+          const knockedOutCars = player.cars.map(car => {
+            if (car.id === moveInfo.knockedOut.carId) {
+              return {
+                ...car,
+                position: 'garage',
+                trackPosition: null,
+                isActive: false
+              };
+            }
+            return car;
+          });
+          return { ...player, cars: knockedOutCars };
+        }
+        
         return player;
       });
 
       return {
         ...state,
-        players: movedPlayers,
+        players: updatedPlayers,
         trackPositions: movementManager.getTrackOccupancy(),
         gameState: GAME_STATES.TURN_COMPLETE  // End with TURN_COMPLETE
       };

@@ -1,5 +1,8 @@
 import { GAME_STATES } from '../context/GameContext';
 
+// Safe tiles where knockouts are not allowed
+const SAFE_TILES = [0, 13, 26, 39];
+
 // Movement Manager - handles car movement logic and collision detection
 export class MovementManager {
   constructor() {
@@ -48,28 +51,97 @@ export class MovementManager {
     };
   }
 
+  // Check if a tile is a safe zone
+  isSafeTile(position) {
+    return SAFE_TILES.includes(position);
+  }
+
+  // Resolve collision after a car moves
+  // Returns knockout info if opponent was knocked out, or null if move was blocked
+  resolveCollision(movingCar, playerId, newPosition) {
+    const collision = this.getCollisionInfo(newPosition, playerId);
+    
+    // No collision - nothing to resolve
+    if (!collision.hasCollision) {
+      return { type: 'NO_COLLISION' };
+    }
+    
+    // Same team - cars can stack, no knockout
+    if (collision.isOwnPlayer) {
+      return { type: 'STACK' };
+    }
+    
+    // Check if target tile is a safe zone
+    if (this.isSafeTile(newPosition)) {
+      // Cannot knockout on safe tile - cancel the move
+      return { 
+        type: 'BLOCKED', 
+        reason: 'SAFE_TILE',
+        message: 'Cannot knockout opponent on safe tile!'
+      };
+    }
+    
+    // Knockout opponent car!
+    const knockedOutPlayerId = collision.playerId;
+    const knockedOutCarId = collision.carId;
+    
+    // Clear the opponent's position from track
+    this.trackPositions[newPosition] = null;
+    
+    return {
+      type: 'KNOCKOUT',
+      knockedOutPlayerId,
+      knockedOutCarId,
+      message: 'Knockout!'
+    };
+  }
+
   // Move car on the track
   moveCar(car, playerId, steps) {
     const newPosition = this.calculateNewPosition(car.trackPosition, steps);
     
-    // Handle collision
-    const collision = this.getCollisionInfo(newPosition, playerId);
-    
-    // Update track positions
-    // Clear old position
+    // Clear old position first
     if (car.trackPosition !== null) {
       this.trackPositions[car.trackPosition] = null;
     }
-
-    // Set new position
-    this.trackPositions[newPosition] = {
-      playerId,
-      carId: car.id
-    };
-
+    
+    // Resolve collision (may result in knockout or be blocked)
+    const collisionResult = this.resolveCollision(car, playerId, newPosition);
+    
+    let finalPosition = newPosition;
+    let knockedOutInfo = null;
+    
+    if (collisionResult.type === 'BLOCKED') {
+      // Movement blocked - return to original position
+      finalPosition = car.trackPosition;
+      this.trackPositions[car.trackPosition] = {
+        playerId,
+        carId: car.id
+      };
+    } else if (collisionResult.type === 'KNOCKOUT') {
+      // Knockout occurred - store info for state update
+      knockedOutInfo = {
+        playerId: collisionResult.knockedOutPlayerId,
+        carId: collisionResult.knockedOutCarId
+      };
+      // Moving car takes the position
+      this.trackPositions[newPosition] = {
+        playerId,
+        carId: car.id
+      };
+    } else if (collisionResult.type === 'STACK' || collisionResult.type === 'NO_COLLISION') {
+      // Normal move or stacking
+      this.trackPositions[newPosition] = {
+        playerId,
+        carId: car.id
+      };
+    }
+    
     return {
-      newTrackPosition: newPosition,
-      collision
+      newTrackPosition: finalPosition,
+      collision: collisionResult,
+      knockedOut: knockedOutInfo,
+      wasBlocked: collisionResult.type === 'BLOCKED'
     };
   }
 
@@ -103,13 +175,22 @@ export class MovementManager {
   isLegalMove(car, playerId, steps) {
     // Car must be active and on track
     if (!car.isActive || car.position !== 'track' || car.trackPosition === null) {
-      return false;
+      return { valid: false, reason: 'Car not active' };
     }
 
     const newPosition = this.calculateNewPosition(car.trackPosition, steps);
+    const collision = this.getCollisionInfo(newPosition, playerId);
     
-    // Basic movement is always legal (cars can stack on same position)
-    return true;
+    // Check if move would be blocked by safe tile opponent
+    if (collision.hasCollision && !collision.isOwnPlayer && this.isSafeTile(newPosition)) {
+      return { 
+        valid: false, 
+        reason: 'SAFE_TILE',
+        message: 'Cannot move to safe tile with opponent'
+      };
+    }
+    
+    return { valid: true };
   }
 
   // Get all legal moves for a player
@@ -132,10 +213,20 @@ export class MovementManager {
     // Check movement moves
     const activeCars = player.cars.filter(car => car.isActive && car.position === 'track');
     activeCars.forEach(car => {
-      if (this.isLegalMove(car, player.id, diceValue)) {
+      const moveCheck = this.isLegalMove(car, player.id, diceValue);
+      
+      if (moveCheck.valid) {
         const newPosition = this.calculateNewPosition(car.trackPosition, diceValue);
+        const collision = this.getCollisionInfo(newPosition, player.id);
+        
+        // Check if this move would result in knockout
+        let moveType = 'MOVE';
+        if (collision.hasCollision && !collision.isOwnPlayer && !this.isSafeTile(newPosition)) {
+          moveType = 'KNOCKOUT_MOVE';
+        }
+        
         legalMoves.push({
-          type: 'MOVE',
+          type: moveType,
           carId: car.id,
           car,
           newTrackPosition: newPosition,
@@ -170,5 +261,10 @@ export class MovementManager {
   isSafePosition(position, playerId) {
     const occupancy = this.trackPositions[position];
     return occupancy !== null && occupancy.playerId === playerId;
+  }
+  
+  // Get safe tiles
+  getSafeTiles() {
+    return [...SAFE_TILES];
   }
 }
