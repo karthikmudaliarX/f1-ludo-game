@@ -1,0 +1,58 @@
+.app {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.game-layout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  grid-template-rows: 1fr;
+  gap: 20px;
+  width: 100%;
+  max-width: 1200px;
+  min-height: 700px;
+  align-items: start;
+}
+
+.sidebar-container {
+  display: flex;
+  justify-content: flex-start;
+  align-items: flex-start;
+  height: fit-content;
+}
+
+.board-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  height: 700px;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .app {
+    padding: 10px;
+  }
+  
+  .game-layout {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto;
+    gap: 10px;
+  }
+  
+  .board-container {
+    height: 600px;
+  }
+}
+
+@media (max-width: 480px) {
+  .board-container {
+    height: 500px;
+  }
+}

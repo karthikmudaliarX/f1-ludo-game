@@ -1,0 +1,57 @@
+.board {
+  width: 600px;
+  height: 600px;
+  background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+  border: 4px solid #333;
+  border-radius: 20px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.track-container {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 500px;
+  height: 500px;
+  border: 20px solid #ff6b35;
+  border-radius: 50%;
+  background: transparent;
+}
+
+.center-area {
+  width: 300px;
+  height: 300px;
+  background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 10;
+  box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.3);
+}
+
+.track-logo {
+  text-align: center;
+  color: white;
+  font-family: 'Arial Black', sans-serif;
+}
+
+.track-logo h2 {
+  font-size: 4rem;
+  margin: 0;
+  font-weight: 900;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.track-logo p {
+  font-size: 1.5rem;
+  margin: 0;
+  letter-spacing: 4px;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+}

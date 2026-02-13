@@ -1,0 +1,53 @@
+.garage-area {
+  position: absolute;
+  width: 140px;
+  height: 140px;
+  background: linear-gradient(135deg, #333 0%, #444 100%);
+  border: 3px solid;
+  border-radius: 15px;
+  padding: 10px;
+  z-index: 10;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(10px);
+}
+
+.garage-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.garage-color {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid white;
+  flex-shrink: 0;
+}
+
+.garage-header h3 {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: bold;
+  color: white;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.garage-slots {
+  position: relative;
+  width: 120px;
+  height: 100px;
+}
+
+.garage-slot {
+  position: absolute;
+  width: 30px;
+  height: 30px;
+}
+
+.garage-slot .tile {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
