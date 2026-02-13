@@ -1,57 +1,185 @@
+/* Board Container with 3x3 Grid Zoning */
 .board {
+  display: grid;
   width: 600px;
   height: 600px;
-  background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
-  border: 4px solid #333;
+  grid-template-columns: 1fr 2fr 1fr;
+  grid-template-rows: 1fr 2fr 1fr;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(20px);
   border-radius: 20px;
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 0 80px rgba(0, 0, 0, 0.6);
+  padding: 12px;
+  box-sizing: border-box;
 }
 
+/* Garage Zones */
+.garage-zone {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 12px;
+}
+
+.garage-top-left {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.garage-top-right {
+  grid-column: 3;
+  grid-row: 1;
+}
+
+.garage-bottom-left {
+  grid-column: 1;
+  grid-row: 3;
+}
+
+.garage-bottom-right {
+  grid-column: 3;
+  grid-row: 3;
+}
+
+/* Track Padding Zones */
+.track-padding {
+  background: rgba(255, 107, 53, 0.05);
+  border-radius: 8px;
+}
+
+.padding-top {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.padding-bottom {
+  grid-column: 2;
+  grid-row: 3;
+}
+
+.padding-left {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.padding-right {
+  grid-column: 3;
+  grid-row: 2;
+}
+
+/* Center Track Area */
+.track-center {
+  grid-column: 2;
+  grid-row: 2;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Track Container with Circular Path */
 .track-container {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 500px;
-  height: 500px;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Circular Track Border */
+.track-container::before {
+  content: '';
+  position: absolute;
+  width: 90%;
+  height: 90%;
   border: 20px solid #ff6b35;
   border-radius: 50%;
-  background: transparent;
+  box-shadow: 
+    inset 0 0 30px rgba(0, 0, 0, 0.5),
+    0 0 20px rgba(255, 107, 53, 0.3);
 }
 
-.center-area {
-  width: 300px;
-  height: 300px;
-  background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+/* Center Dashboard */
+.center-dashboard {
+  width: 50%;
+  height: 50%;
+  background: radial-gradient(circle at center, #1a1a1a 0%, #0d0d0d 100%);
   border-radius: 50%;
   display: flex;
-  align-items: center;
   justify-content: center;
+  align-items: center;
   position: relative;
   z-index: 10;
-  box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.3);
+  box-shadow: 
+    inset 0 0 40px rgba(0, 0, 0, 0.8),
+    0 0 20px rgba(0, 0, 0, 0.5);
+  border: 3px solid rgba(255, 107, 53, 0.3);
 }
 
+/* Dashboard Inner Ring */
+.center-dashboard::before {
+  content: '';
+  position: absolute;
+  width: 85%;
+  height: 85%;
+  border: 2px dashed rgba(255, 107, 53, 0.2);
+  border-radius: 50%;
+}
+
+/* Track Logo */
 .track-logo {
   text-align: center;
   color: white;
   font-family: 'Arial Black', sans-serif;
+  z-index: 11;
 }
 
 .track-logo h2 {
-  font-size: 4rem;
+  font-size: 3rem;
   margin: 0;
   font-weight: 900;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+  background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: none;
+  filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.5));
 }
 
 .track-logo p {
-  font-size: 1.5rem;
+  font-size: 1rem;
   margin: 0;
   letter-spacing: 4px;
+  color: rgba(255, 255, 255, 0.7);
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .board {
+    width: 100%;
+    max-width: 500px;
+    height: auto;
+    aspect-ratio: 1;
+    padding: 8px;
+    gap: 8px;
+  }
+  
+  .track-logo h2 {
+    font-size: 2rem;
+  }
+  
+  .track-logo p {
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .board {
+    max-width: 400px;
+    padding: 6px;
+    gap: 6px;
+  }
 }

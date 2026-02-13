@@ -5,22 +5,10 @@ import CarToken from './CarToken';
 import './GarageArea.css';
 
 const GarageArea = ({ playerId }) => {
-  const { gameState, gameStates, teamColors } = useGame();
+  const { gameState } = useGame();
   const player = gameState.players[playerId];
   
-  const getGaragePosition = () => {
-    // Position garages in corners of the board
-    const positions = [
-      { top: '20px', left: '20px' },    // Player 0 (Ferrari) - Top Left
-      { top: '20px', right: '20px' },   // Player 1 (Mercedes) - Top Right
-      { bottom: '20px', left: '20px' }, // Player 2 (McLaren) - Bottom Left
-      { bottom: '20px', right: '20px' } // Player 3 (Williams) - Bottom Right
-    ];
-    return positions[playerId];
-  };
-
   const getCarSlots = () => {
-    // 2x2 grid of car slots in each garage
     const slots = [];
     for (let i = 0; i < 4; i++) {
       const row = Math.floor(i / 2);
@@ -28,21 +16,19 @@ const GarageArea = ({ playerId }) => {
       
       slots.push({
         id: i,
-        top: row === 0 ? '10px' : '60px',
-        left: col === 0 ? '10px' : '60px'
+        row,
+        col
       });
     }
     return slots;
   };
 
   const carSlots = getCarSlots();
-  const garagePosition = getGaragePosition();
 
   return (
     <div 
       className="garage-area"
       style={{
-        ...garagePosition,
         borderColor: player.color
       }}
     >
@@ -63,8 +49,8 @@ const GarageArea = ({ playerId }) => {
               key={slot.id}
               className="garage-slot"
               style={{
-                top: slot.top,
-                left: slot.left
+                gridRow: slot.row + 1,
+                gridColumn: slot.col + 1
               }}
             >
               <Tile

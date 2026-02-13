@@ -4,26 +4,26 @@ import Tile from './Tile';
 import CarToken from './CarToken';
 import './Board.css';
 
-const Board = () => {
+const Board = ({ children }) => {
   const { gameState } = useGame();
 
   // Generate 52 track positions in a circular loop
   const generateTrackPositions = () => {
     const positions = [];
-    const centerX = 250; // Center of 500px track container
+    const centerX = 250;
     const centerY = 250;
-    const radius = 200; // Radius of the track
+    const radius = 200;
     
     for (let i = 0; i < 52; i++) {
-      const angle = (i / 52) * 2 * Math.PI - Math.PI / 2; // Start from top, go clockwise
-      const x = centerX + radius * Math.cos(angle) - 15; // -15 to center the 30px tile
+      const angle = (i / 52) * 2 * Math.PI - Math.PI / 2;
+      const x = centerX + radius * Math.cos(angle) - 15;
       const y = centerY + radius * Math.sin(angle) - 15;
       
       positions.push({
         id: i,
         x,
         y,
-        angle: angle * (180 / Math.PI), // Convert to degrees for display
+        angle: angle * (180 / Math.PI),
         isTrackPosition: true
       });
     }
@@ -53,47 +53,68 @@ const Board = () => {
 
   return (
     <div className="board">
-      <div className="track-container">
-        {trackPositions.map(position => {
-          // Check if there's a car on this position
-          const carOnPosition = trackCars.find(car => car.trackPosition === position.id);
-          
-          return (
-            <div
-              key={position.id}
-              className="track-tile-wrapper"
-              style={{
-                position: 'absolute',
-                left: position.x,
-                top: position.y,
-                width: '30px',
-                height: '30px',
-                transform: `rotate(${position.angle + 90}deg)` // Rotate tiles to face outward
-              }}
-            >
-              <Tile
-                id={position.id}
-                isTrackPosition={true}
-              />
-              
-              {/* Render car if present on this track position */}
-              {carOnPosition && (
-                <CarToken
-                  car={carOnPosition}
-                  player={carOnPosition.player}
-                  isClickable={false}
-                />
-              )}
-            </div>
-          );
-        })}
+      {/* Grid Zones for Garages */}
+      <div className="garage-zone garage-top-left">
+        {React.Children.toArray(children).find(child => child.props?.playerId === 0)}
+      </div>
+      <div className="garage-zone garage-top-right">
+        {React.Children.toArray(children).find(child => child.props?.playerId === 1)}
+      </div>
+      <div className="garage-zone garage-bottom-left">
+        {React.Children.toArray(children).find(child => child.props?.playerId === 2)}
+      </div>
+      <div className="garage-zone garage-bottom-right">
+        {React.Children.toArray(children).find(child => child.props?.playerId === 3)}
       </div>
       
-      {/* Center area of the board */}
-      <div className="center-area">
-        <div className="track-logo">
-          <h2>F1</h2>
-          <p>RACING</p>
+      {/* Track Padding Zones */}
+      <div className="track-padding padding-top" />
+      <div className="track-padding padding-bottom" />
+      <div className="track-padding padding-left" />
+      <div className="track-padding padding-right" />
+      
+      {/* Center Track */}
+      <div className="track-center">
+        <div className="track-container">
+          {trackPositions.map(position => {
+            const carOnPosition = trackCars.find(car => car.trackPosition === position.id);
+            
+            return (
+              <div
+                key={position.id}
+                className="track-tile-wrapper"
+                style={{
+                  position: 'absolute',
+                  left: position.x,
+                  top: position.y,
+                  width: '30px',
+                  height: '30px',
+                  transform: `rotate(${position.angle + 90}deg)`
+                }}
+              >
+                <Tile
+                  id={position.id}
+                  isTrackPosition={true}
+                />
+                
+                {carOnPosition && (
+                  <CarToken
+                    car={carOnPosition}
+                    player={carOnPosition.player}
+                    isClickable={false}
+                  />
+                )}
+              </div>
+            );
+          })}
+        </div>
+        
+        {/* Center dashboard area */}
+        <div className="center-dashboard">
+          <div className="track-logo">
+            <h2>F1</h2>
+            <p>RACING</p>
+          </div>
         </div>
       </div>
     </div>

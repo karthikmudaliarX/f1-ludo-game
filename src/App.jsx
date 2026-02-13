@@ -18,13 +18,13 @@ function App() {
           
           {/* Center Board Area */}
           <div className="board-container">
-            <Board />
-            
-            {/* Garage Areas */}
-            <GarageArea playerId={0} />
-            <GarageArea playerId={1} />
-            <GarageArea playerId={2} />
-            <GarageArea playerId={3} />
+            <Board>
+              {/* Garage Areas - passed as children to Board */}
+              <GarageArea playerId={0} />
+              <GarageArea playerId={1} />
+              <GarageArea playerId={2} />
+              <GarageArea playerId={3} />
+            </Board>
           </div>
         </div>
         
